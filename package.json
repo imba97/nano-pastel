@@ -1,7 +1,7 @@
 {
   "name": "nano-pastel",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "packageManager": "pnpm@11.8.0",
   "description": "Parity-alternating pastel palette generator — adjacent groups stay ≥100° apart, with custom palettes and hash-stable colors.",
   "license": "MIT",
