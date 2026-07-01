@@ -2,7 +2,7 @@
   "name": "nano-pastel",
   "type": "module",
   "version": "0.0.1",
-  "packageManager": "pnpm@11.8.0",
+  "packageManager": "pnpm@11.9.0",
   "description": "Parity-alternating pastel palette generator — adjacent groups stay ≥100° apart, with custom palettes and hash-stable colors.",
   "license": "MIT",
   "homepage": "https://github.com/imba97/nano-pastel#readme",
@@ -41,11 +41,11 @@
     "prepare": "simple-git-hooks"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^9.0.0",
-    "@types/node": "^26.0.0",
+    "@antfu/eslint-config": "^9.1.0",
+    "@types/node": "^26.0.1",
     "@vitest/coverage-v8": "^4.1.9",
     "bumpp": "^11.1.0",
-    "eslint": "^10.5.0",
+    "eslint": "^10.6.0",
     "happy-dom": "^20.10.6",
     "nano-staged": "^1.0.2",
     "simple-git-hooks": "^2.13.1",
