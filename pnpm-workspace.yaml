@@ -1,0 +1,12 @@
+allowBuilds:
+  esbuild: true
+  simple-git-hooks: true
+
+minimumReleaseAgeExclude:
+  - '@types/node'
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - nanoid

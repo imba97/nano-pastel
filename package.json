@@ -1,0 +1,62 @@
+{
+  "name": "nano-pastel",
+  "type": "module",
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.8.0",
+  "description": "Parity-alternating pastel palette generator — adjacent groups stay ≥100° apart, with custom palettes and hash-stable colors.",
+  "license": "MIT",
+  "homepage": "https://github.com/imba97/nano-pastel#readme",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:imba97/nano-pastel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/imba97/nano-pastel/issues"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "stub": "unbuild --stub",
+    "build": "unbuild",
+    "lint": "eslint --cache",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "release": "bumpp",
+    "prepare": "simple-git-hooks"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^9.0.0",
+    "@types/node": "^26.0.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "bumpp": "^11.1.0",
+    "eslint": "^10.5.0",
+    "happy-dom": "^20.10.6",
+    "nano-staged": "^1.0.2",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^6.0.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.9"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm nano-staged"
+  },
+  "nano-staged": {
+    "*": "eslint --cache --fix"
+  }
+}
