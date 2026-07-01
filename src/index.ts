@@ -1,4 +1,5 @@
 export {
+  DEFAULT_HSL,
   DEFAULT_PALETTE,
   HUE_SET_COOL,
   HUE_SET_WARM,
@@ -7,17 +8,12 @@ export {
   PastelColor,
   pastelHuesForGroupOrder,
   pastelsFor,
-  pastelStyle,
   pickPastelHue,
-  pickPastelHueForKey,
-  stylesForGroupOrder
+  pickPastelHueForKey
 } from './pastel'
 
 export type {
   PastelHsl,
   PastelPalette,
-  PastelStrategy,
-  PastelStyle,
-  PastelStyleOptions,
-  PastelThemeMode
+  PastelStrategy
 } from './pastel'

@@ -12,8 +12,6 @@ export const HUE_SET_WARM = [10, 50, 100, 150] as const
 /** Cool-side hues (180° - 360°), opposite the warm set. */
 export const HUE_SET_COOL = [200, 250, 290, 340] as const
 
-export type PastelThemeMode = 'light' | 'dark'
-
 export interface PastelPalette {
   warm: readonly number[]
   cool: readonly number[]
@@ -33,16 +31,12 @@ export interface PastelHsl {
   a: number
 }
 
-/** Theme-specific HSL defaults for the background color. */
-const THEME_DEFAULTS: Record<PastelThemeMode, { s: number, l: number, a: number }> = {
-  light: { s: 45, l: 92, a: 0.9 },
-  dark: { s: 35, l: 32, a: 0.55 }
-}
-
-const TEXT_DEFAULTS: Record<PastelThemeMode, { s: number, l: number }> = {
-  light: { s: 55, l: 32 },
-  dark: { s: 50, l: 86 }
-}
+/** Default HSL values for the pastel look. Override via `pastelsFor` options. */
+export const DEFAULT_HSL = {
+  saturation: 45,
+  lightness: 92,
+  alpha: 0.9
+} as const
 
 function clamp(n: number, min: number, max: number): number {
   return n < min ? min : n > max ? max : n
@@ -107,17 +101,14 @@ export class PastelColor {
 
   constructor(options: {
     hue: number
-    theme?: PastelThemeMode
-    saturation?: number
-    lightness?: number
-    alpha?: number
+    saturation: number
+    lightness: number
+    alpha: number
   }) {
-    const { hue, theme = 'light', saturation, lightness, alpha } = options
-    const defaults = THEME_DEFAULTS[theme]
-    this.hue = wrapHue(hue)
-    this.saturation = saturation ?? defaults.s
-    this.lightness = lightness ?? defaults.l
-    this.alpha = alpha ?? defaults.a
+    this.hue = wrapHue(options.hue)
+    this.saturation = clamp(options.saturation, 0, 100)
+    this.lightness = clamp(options.lightness, 0, 100)
+    this.alpha = clamp(options.alpha, 0, 1)
   }
 
   get hsl(): PastelHsl {
@@ -164,49 +155,15 @@ export class PastelColor {
   }
 }
 
-export interface PastelStyle {
-  backgroundColor: PastelColor
-  color: PastelColor
-  border?: string
-}
-
-export interface PastelStyleOptions {
-  /** 0-based position in the ordered group list. */
-  index: number
-  /** Defaults to 'light'. */
-  theme?: PastelThemeMode
-  /** Defaults to true; set false to omit the `border: 0` reset. */
-  borderless?: boolean
-  /** Override the default warm/cool palette. */
-  palette?: PastelPalette
-}
-
-/**
- * Build a ready-to-spread style object.
- *  - light: high lightness + translucent background, darker text
- *  - dark: low lightness + low saturation, lighter text
- */
-export function pastelStyle(options: PastelStyleOptions): PastelStyle {
-  const { index, theme = 'light', borderless = true, palette = DEFAULT_PALETTE } = options
-  return buildStyle(pickPastelHue(index, palette), theme, borderless)
-}
-
-function buildStyle(hue: number, theme: PastelThemeMode, borderless: boolean): PastelStyle {
-  const text = TEXT_DEFAULTS[theme]
-  return {
-    backgroundColor: new PastelColor({ hue, theme }),
-    color: new PastelColor({ hue, saturation: text.s, lightness: text.l, alpha: 1 }),
-    ...(borderless ? { border: '0' } : {})
-  }
-}
-
 export interface PastelsForOptions {
   /** 'order' (default) uses group position, 'hash' uses a stable key hash. */
   strategy?: PastelStrategy
-  /** Defaults to 'light'. */
-  theme?: PastelThemeMode
   /** Override the default warm/cool palette. */
   palette?: PastelPalette
+  /** Override the default pastel HSL values. */
+  saturation?: number
+  lightness?: number
+  alpha?: number
 }
 
 /** Map each ordered group name to a `PastelColor`. */
@@ -214,35 +171,17 @@ export function pastelsFor(
   groupOrder: readonly string[],
   options: PastelsForOptions = {}
 ): Record<string, PastelColor> {
-  const { strategy = 'order', theme = 'light', palette = DEFAULT_PALETTE } = options
+  const {
+    strategy = 'order',
+    palette = DEFAULT_PALETTE,
+    saturation = DEFAULT_HSL.saturation,
+    lightness = DEFAULT_HSL.lightness,
+    alpha = DEFAULT_HSL.alpha
+  } = options
   const map: Record<string, PastelColor> = {}
   groupOrder.forEach((group, idx) => {
     const hue = strategy === 'hash' ? pickPastelHueForKey(group, palette) : pickPastelHue(idx, palette)
-    map[group] = new PastelColor({ hue, theme })
-  })
-  return map
-}
-
-export interface StylesForGroupOrderOptions {
-  /** 'order' (default) uses group position, 'hash' uses a stable key hash. */
-  strategy?: PastelStrategy
-  /** Override the default warm/cool palette. */
-  palette?: PastelPalette
-  /** Defaults to true; set false to omit the `border: 0` reset. */
-  borderless?: boolean
-}
-
-/** Map each ordered group name to a full `PastelStyle`. Cache this in callers. */
-export function stylesForGroupOrder(
-  groupOrder: readonly string[],
-  theme: PastelThemeMode = 'light',
-  options: StylesForGroupOrderOptions = {}
-): Record<string, PastelStyle> {
-  const { strategy = 'order', palette = DEFAULT_PALETTE, borderless = true } = options
-  const map: Record<string, PastelStyle> = {}
-  groupOrder.forEach((group, idx) => {
-    const hue = strategy === 'hash' ? pickPastelHueForKey(group, palette) : pickPastelHue(idx, palette)
-    map[group] = buildStyle(hue, theme, borderless)
+    map[group] = new PastelColor({ hue, saturation, lightness, alpha })
   })
   return map
 }

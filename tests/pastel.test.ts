@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_HSL,
   DEFAULT_PALETTE,
   HUE_SET_COOL,
   HUE_SET_WARM,
@@ -8,10 +9,8 @@ import {
   PastelColor,
   pastelHuesForGroupOrder,
   pastelsFor,
-  pastelStyle,
   pickPastelHue,
-  pickPastelHueForKey,
-  stylesForGroupOrder
+  pickPastelHueForKey
 } from '../src/pastel'
 
 const customPalette = {
@@ -92,100 +91,73 @@ describe('pastelHuesForGroupOrder', () => {
 
 describe('pastelColor', () => {
   it('formats .value as hsla()', () => {
-    const color = new PastelColor({ hue: 10, theme: 'light' })
+    const color = new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9 })
     expect(color.value).toBe('hsla(10, 45%, 92%, 0.9)')
   })
 
-  it('uses dark defaults when theme is dark', () => {
-    const color = new PastelColor({ hue: 200, theme: 'dark' })
-    expect(color.value).toBe('hsla(200, 35%, 32%, 0.55)')
-  })
-
-  it('lets saturation / lightness / alpha override the theme defaults', () => {
-    const color = new PastelColor({
-      hue: 100,
-      theme: 'light',
-      saturation: 60,
-      lightness: 50,
-      alpha: 0.5
-    })
-    expect(color.value).toBe('hsla(100, 60%, 50%, 0.5)')
-  })
-
   it('wraps out-of-range hues into [0, 360)', () => {
-    const color = new PastelColor({ hue: 370 })
+    const color = new PastelColor({ hue: 370, saturation: 45, lightness: 92, alpha: 0.9 })
     expect(color.hsl.h).toBe(10)
   })
 
+  it('clamps saturation to [0, 100]', () => {
+    expect(new PastelColor({ hue: 10, saturation: 150, lightness: 50, alpha: 0.5 }).hsl.s).toBe(100)
+    expect(new PastelColor({ hue: 10, saturation: -10, lightness: 50, alpha: 0.5 }).hsl.s).toBe(0)
+  })
+
+  it('clamps lightness to [0, 100]', () => {
+    expect(new PastelColor({ hue: 10, saturation: 50, lightness: 150, alpha: 0.5 }).hsl.l).toBe(100)
+    expect(new PastelColor({ hue: 10, saturation: 50, lightness: -10, alpha: 0.5 }).hsl.l).toBe(0)
+  })
+
+  it('clamps alpha to [0, 1]', () => {
+    expect(new PastelColor({ hue: 10, saturation: 50, lightness: 50, alpha: 2 }).hsl.a).toBe(1)
+    expect(new PastelColor({ hue: 10, saturation: 50, lightness: 50, alpha: -1 }).hsl.a).toBe(0)
+  })
+
   it('lighten() adds to L and clamps to 100', () => {
-    const color = new PastelColor({ hue: 10, lightness: 95 })
+    const color = new PastelColor({ hue: 10, saturation: 50, lightness: 95, alpha: 0.5 })
     expect(color.lighten(10).hsl.l).toBe(100)
   })
 
   it('darken() subtracts from L and clamps to 0', () => {
-    const color = new PastelColor({ hue: 10, lightness: 5 })
+    const color = new PastelColor({ hue: 10, saturation: 50, lightness: 5, alpha: 0.5 })
     expect(color.darken(10).hsl.l).toBe(0)
   })
 
   it('saturate() adds to S and clamps to 100', () => {
-    const color = new PastelColor({ hue: 10, saturation: 95 })
+    const color = new PastelColor({ hue: 10, saturation: 95, lightness: 50, alpha: 0.5 })
     expect(color.saturate(10).hsl.s).toBe(100)
   })
 
   it('desaturate() subtracts from S and clamps to 0', () => {
-    const color = new PastelColor({ hue: 10, saturation: 5 })
+    const color = new PastelColor({ hue: 10, saturation: 5, lightness: 50, alpha: 0.5 })
     expect(color.desaturate(10).hsl.s).toBe(0)
   })
 
   it('withAlpha() sets alpha within [0, 1]', () => {
-    const color = new PastelColor({ hue: 10, alpha: 0.5 })
+    const color = new PastelColor({ hue: 10, saturation: 50, lightness: 50, alpha: 0.5 })
     expect(color.withAlpha(0.3).hsl.a).toBe(0.3)
     expect(color.withAlpha(2).hsl.a).toBe(1)
     expect(color.withAlpha(-1).hsl.a).toBe(0)
   })
 
   it('mutators return new instances and do not modify the original', () => {
-    const color = new PastelColor({ hue: 10, theme: 'light' })
+    const color = new PastelColor({ hue: 10, saturation: 50, lightness: 92, alpha: 0.5 })
     const lighter = color.lighten(5)
     expect(lighter).not.toBe(color)
     expect(lighter.hsl.l).toBe(97)
     expect(color.hsl.l).toBe(92)
   })
-})
 
-describe('pastelStyle', () => {
-  it('returns PastelColor instances for backgroundColor and color', () => {
-    const style = pastelStyle({ index: 0, theme: 'light' })
-    expect(style.backgroundColor).toBeInstanceOf(PastelColor)
-    expect(style.color).toBeInstanceOf(PastelColor)
-  })
-
-  it('emits hsla background and hsl-shaped text', () => {
-    const style = pastelStyle({ index: 0, theme: 'light' })
-    expect(style.backgroundColor.value).toMatch(/^hsla\(/)
-    expect(style.color.value).toMatch(/^hsla\(/)
-  })
-
-  it('defaults to borderless style', () => {
-    const style = pastelStyle({ index: 2 })
-    expect(style.border).toBe('0')
-  })
-
-  it('omits border when borderless is false', () => {
-    const style = pastelStyle({ index: 2, borderless: false })
-    expect(style.border).toBeUndefined()
-  })
-
-  it('switches theme defaults between light and dark', () => {
-    const light = pastelStyle({ index: 3, theme: 'light' })
-    const dark = pastelStyle({ index: 3, theme: 'dark' })
-    expect(light.backgroundColor.value).not.toBe(dark.backgroundColor.value)
-    expect(light.color.value).not.toBe(dark.color.value)
-  })
-
-  it('honors a custom palette', () => {
-    const style = pastelStyle({ index: 0, palette: customPalette })
-    expect(style.backgroundColor.hsl.h).toBe(customPalette.warm[0])
+  it('supports the base-color + tweak pattern', () => {
+    const base = new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9 })
+    const tint = base.lighten(5)
+    const text = base.darken(40).saturate(20)
+    expect(tint.hsl.h).toBe(10)
+    expect(tint.hsl.l).toBe(97)
+    expect(text.hsl.h).toBe(10)
+    expect(text.hsl.l).toBe(52)
   })
 })
 
@@ -200,9 +172,18 @@ describe('pastelsFor', () => {
     expect(map.group4.hsl.h).toBe(pickPastelHue(3))
   })
 
-  it('uses theme defaults on the returned color', () => {
-    const map = pastelsFor(['group1'], { theme: 'dark' })
-    expect(map.group1.hsl.l).toBe(32)
+  it('applies the default HSL values', () => {
+    const map = pastelsFor(['group1'])
+    expect(map.group1.hsl.s).toBe(DEFAULT_HSL.saturation)
+    expect(map.group1.hsl.l).toBe(DEFAULT_HSL.lightness)
+    expect(map.group1.hsl.a).toBe(DEFAULT_HSL.alpha)
+  })
+
+  it('lets callers override saturation / lightness / alpha', () => {
+    const map = pastelsFor(['group1'], { saturation: 60, lightness: 50, alpha: 0.5 })
+    expect(map.group1.hsl.s).toBe(60)
+    expect(map.group1.hsl.l).toBe(50)
+    expect(map.group1.hsl.a).toBe(0.5)
   })
 
   it('hash strategy gives the same color for the same key across calls', () => {
@@ -224,33 +205,6 @@ describe('pastelsFor', () => {
     const map = pastelsFor(['group1', 'group2'], { palette: customPalette })
     expect(map.group1.hsl.h).toBe(customPalette.warm[0])
     expect(map.group2.hsl.h).toBe(customPalette.cool[0])
-  })
-})
-
-describe('stylesForGroupOrder', () => {
-  it('produces a complete style object per group', () => {
-    const order = ['a', 'b', 'c']
-    const map = stylesForGroupOrder(order)
-    for (const key of order) {
-      expect(map[key]).toBeDefined()
-      expect(map[key].backgroundColor).toBeInstanceOf(PastelColor)
-      expect(map[key].color).toBeInstanceOf(PastelColor)
-    }
-  })
-
-  it('reuses pickPastelHue indices under the default order strategy', () => {
-    const order = ['x', 'y', 'z']
-    const map = stylesForGroupOrder(order, 'dark')
-    const flat = Object.values(map)
-    expect(flat[0].backgroundColor.value).toMatch(/^hsla\(/)
-    expect(flat[1].backgroundColor.value).toMatch(/^hsla\(/)
-  })
-
-  it('hash strategy keeps colors stable across reorderings', () => {
-    const a = stylesForGroupOrder(['group1', 'group2'], 'light', { strategy: 'hash' })
-    const b = stylesForGroupOrder(['group2', 'other', 'group1'], 'light', { strategy: 'hash' })
-    expect(a.group1.backgroundColor.value).toBe(b.group1.backgroundColor.value)
-    expect(a.group2.backgroundColor.value).toBe(b.group2.backgroundColor.value)
   })
 })
 
