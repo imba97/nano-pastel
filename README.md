@@ -1,4 +1,4 @@
-![nano-pastel](.github/images/nano-pastel.png)
+![nano-pastel](https://github.com/imba97/nano-pastel/raw/main/.github/images/nano-pastel.png)
 
 # nano-pastel
 
