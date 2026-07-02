@@ -90,9 +90,40 @@ describe('pastelHuesForGroupOrder', () => {
 })
 
 describe('pastelColor', () => {
-  it('formats .value as hsla()', () => {
+  it('formats .value as rgba by default', () => {
     const color = new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9 })
+    expect(color.value).toBe('rgba(244, 228, 225, 0.9)')
+  })
+
+  it('formats .value as hex when format is "hex"', () => {
+    const color = new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9, format: 'hex' })
+    expect(color.value).toBe('#f4e4e1')
+  })
+
+  it('formats .value as hsla when format is "hsla"', () => {
+    const color = new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9, format: 'hsla' })
     expect(color.value).toBe('hsla(10, 45%, 92%, 0.9)')
+  })
+
+  it('exposes rgba and hex getters regardless of format', () => {
+    const color = new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9, format: 'hsla' })
+    expect(color.rgba).toBe('rgba(244, 228, 225, 0.9)')
+    expect(color.hex).toBe('#f4e4e1')
+  })
+
+  it('exposes the chosen format on .format', () => {
+    expect(new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9 }).format).toBe('rgba')
+    expect(new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9, format: 'hex' }).format).toBe('hex')
+    expect(new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9, format: 'hsla' }).format).toBe('hsla')
+  })
+
+  it('preserves format across mutators', () => {
+    const color = new PastelColor({ hue: 10, saturation: 45, lightness: 92, alpha: 0.9, format: 'hex' })
+    expect(color.lighten(2).format).toBe('hex')
+    expect(color.darken(2).format).toBe('hex')
+    expect(color.saturate(2).format).toBe('hex')
+    expect(color.desaturate(2).format).toBe('hex')
+    expect(color.withAlpha(0.5).format).toBe('hex')
   })
 
   it('wraps out-of-range hues into [0, 360)', () => {
@@ -205,6 +236,14 @@ describe('pastelsFor', () => {
     const map = pastelsFor(['group1', 'group2'], { palette: customPalette })
     expect(map.group1.hsl.h).toBe(customPalette.warm[0])
     expect(map.group2.hsl.h).toBe(customPalette.cool[0])
+  })
+
+  it('applies the format option to each color', () => {
+    const hexMap = pastelsFor(['group1'], { format: 'hex' })
+    expect(hexMap.group1.format).toBe('hex')
+    expect(hexMap.group1.value).toBe(hexMap.group1.hex)
+    const hslaMap = pastelsFor(['group1'], { format: 'hsla' })
+    expect(hslaMap.group1.value).toBe('hsla(10, 45%, 92%, 0.9)')
   })
 })
 

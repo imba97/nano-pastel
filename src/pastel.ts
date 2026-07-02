@@ -6,6 +6,8 @@
  * hue gap of ~100° between any two neighbors.
  */
 
+import { clamp, fnv1a, hslToRgb, toHexByte, wrapHue } from './utils'
+
 /** Warm-side hues (0° - 180°). */
 export const HUE_SET_WARM = [10, 50, 100, 150] as const
 
@@ -38,13 +40,10 @@ export const DEFAULT_HSL = {
   alpha: 0.9
 } as const
 
-function clamp(n: number, min: number, max: number): number {
-  return n < min ? min : n > max ? max : n
-}
+/** Default color format returned by `PastelColor#value`. */
+export const DEFAULT_COLOR_FORMAT = 'rgba' as const
 
-function wrapHue(h: number): number {
-  return ((h % 360) + 360) % 360
-}
+export type PastelColorFormat = 'hsla' | 'hex' | 'rgba'
 
 /**
  * Pick a hue by index. Even → warm, odd → cool.
@@ -69,16 +68,6 @@ export function hueDistance(a: number, b: number): number {
   return diff > 180 ? 360 - diff : diff
 }
 
-/** FNV-1a 32-bit hash. Stable across runs and platforms. */
-function fnv1a(str: string): number {
-  let hash = 2166136261
-  for (let i = 0; i < str.length; i += 1) {
-    hash ^= str.charCodeAt(i)
-    hash = Math.imul(hash, 16777619) >>> 0
-  }
-  return hash
-}
-
 /** Hash-based stable hue. Same key always maps to the same color. */
 export function pickPastelHueForKey(key: string, palette: PastelPalette = DEFAULT_PALETTE): number {
   return pickPastelHue(fnv1a(key), palette)
@@ -93,39 +82,76 @@ export function pastelHuesForGroupOrder(count: number, palette: PastelPalette = 
   return hues
 }
 
+export interface PastelColorOptions {
+  hue: number
+  saturation: number
+  lightness: number
+  alpha: number
+  /** Output format for `value`. Defaults to `'rgba'`. */
+  format?: PastelColorFormat
+}
+
 export class PastelColor {
   readonly hue: number
   readonly saturation: number
   readonly lightness: number
   readonly alpha: number
+  readonly format: PastelColorFormat
 
-  constructor(options: {
-    hue: number
-    saturation: number
-    lightness: number
-    alpha: number
-  }) {
+  constructor(options: PastelColorOptions) {
     this.hue = wrapHue(options.hue)
     this.saturation = clamp(options.saturation, 0, 100)
     this.lightness = clamp(options.lightness, 0, 100)
     this.alpha = clamp(options.alpha, 0, 1)
+    this.format = options.format ?? DEFAULT_COLOR_FORMAT
   }
 
   get hsl(): PastelHsl {
     return { h: this.hue, s: this.saturation, l: this.lightness, a: this.alpha }
   }
 
-  get value(): string {
+  private get rgb(): [number, number, number] {
+    return hslToRgb(this.hue, this.saturation, this.lightness)
+  }
+
+  get hsla(): string {
     return `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${this.alpha})`
   }
 
-  lighten(amount: number): PastelColor {
+  get rgba(): string {
+    const [r, g, b] = this.rgb
+    return `rgba(${r}, ${g}, ${b}, ${this.alpha})`
+  }
+
+  get hex(): string {
+    const [r, g, b] = this.rgb
+    return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`
+  }
+
+  get value(): string {
+    switch (this.format) {
+      case 'hex':
+        return this.hex
+      case 'rgba':
+        return this.rgba
+      case 'hsla':
+        return this.hsla
+    }
+  }
+
+  private with(overrides: Partial<PastelColorOptions>): PastelColor {
     return new PastelColor({
       hue: this.hue,
       saturation: this.saturation,
-      lightness: clamp(this.lightness + amount, 0, 100),
-      alpha: this.alpha
+      lightness: this.lightness,
+      alpha: this.alpha,
+      format: this.format,
+      ...overrides
     })
+  }
+
+  lighten(amount: number): PastelColor {
+    return this.with({ lightness: clamp(this.lightness + amount, 0, 100) })
   }
 
   darken(amount: number): PastelColor {
@@ -133,12 +159,7 @@ export class PastelColor {
   }
 
   saturate(amount: number): PastelColor {
-    return new PastelColor({
-      hue: this.hue,
-      saturation: clamp(this.saturation + amount, 0, 100),
-      lightness: this.lightness,
-      alpha: this.alpha
-    })
+    return this.with({ saturation: clamp(this.saturation + amount, 0, 100) })
   }
 
   desaturate(amount: number): PastelColor {
@@ -146,12 +167,7 @@ export class PastelColor {
   }
 
   withAlpha(alpha: number): PastelColor {
-    return new PastelColor({
-      hue: this.hue,
-      saturation: this.saturation,
-      lightness: this.lightness,
-      alpha: clamp(alpha, 0, 1)
-    })
+    return this.with({ alpha: clamp(alpha, 0, 1) })
   }
 }
 
@@ -164,6 +180,8 @@ export interface PastelsForOptions {
   saturation?: number
   lightness?: number
   alpha?: number
+  /** Output format for each color's `value`. Defaults to `'rgba'`. */
+  format?: PastelColorFormat
 }
 
 /** Map each ordered group name to a `PastelColor`. */
@@ -176,12 +194,13 @@ export function pastelsFor(
     palette = DEFAULT_PALETTE,
     saturation = DEFAULT_HSL.saturation,
     lightness = DEFAULT_HSL.lightness,
-    alpha = DEFAULT_HSL.alpha
+    alpha = DEFAULT_HSL.alpha,
+    format = DEFAULT_COLOR_FORMAT
   } = options
   const map: Record<string, PastelColor> = {}
   groupOrder.forEach((group, idx) => {
     const hue = strategy === 'hash' ? pickPastelHueForKey(group, palette) : pickPastelHue(idx, palette)
-    map[group] = new PastelColor({ hue, saturation, lightness, alpha })
+    map[group] = new PastelColor({ hue, saturation, lightness, alpha, format })
   })
   return map
 }

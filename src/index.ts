@@ -1,4 +1,5 @@
 export {
+  DEFAULT_COLOR_FORMAT,
   DEFAULT_HSL,
   DEFAULT_PALETTE,
   HUE_SET_COOL,
@@ -13,6 +14,8 @@ export {
 } from './pastel'
 
 export type {
+  PastelColorFormat,
+  PastelColorOptions,
   PastelHsl,
   PastelPalette,
   PastelStrategy
